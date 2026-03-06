@@ -1,3 +1,17 @@
+// Copyright (C) 2026 Oktapiancaw
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 "use server"
 
 import { FileType } from "@/components/app-browser";
@@ -23,8 +37,6 @@ export async function listStorageFiles(config: ConnectionConfig, path: string) {
 
     const entries = await op.list(path);
 
-
-
     const formattedFiles = entries.map((entry) => {
 
       const pathString = entry.path()
@@ -34,12 +46,9 @@ export async function listStorageFiles(config: ConnectionConfig, path: string) {
       if (isFolder) {
         fileType = "folder";
       } else {
-        // 3. Safely extract the extension
         const pathArray = pathString.split('.');
         
-        // Check if it actually has an extension (e.g., length > 1 prevents files like "Makefile" from breaking)
         if (pathArray.length > 1) {
-          // Get the last item and convert to lowercase for safe matching
           const extension = pathArray[pathArray.length - 1].toLowerCase();
 
           switch (extension) {
@@ -82,9 +91,9 @@ export async function listStorageFiles(config: ConnectionConfig, path: string) {
       return {
         id: pathString,
         name: pathString || pathString.split('/').filter(Boolean).pop() || "unknown",
-        type: fileType, // We can refine file types later
-        size: sizeFile, // Requires a separate op.stat() call to get real size
-        lastModified: metadata.lastModified, // Requires a separate op.stat() call
+        type: fileType,
+        size: sizeFile,
+        lastModified: metadata.lastModified,
       };
     });
 
@@ -105,7 +114,6 @@ export async function getDownloadUrl(config: ConnectionConfig, path: string) {
       region: config.region,
     });
 
-    // Generate a secure, temporary URL valid for 1 hour (3600 seconds)
     const req = await op.presignRead(path, 3600);
     
     return req.url;

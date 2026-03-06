@@ -1,3 +1,17 @@
+// Copyright (C) 2026 Oktapiancaw
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 "use client"
 
 import { useState, useEffect } from "react"
@@ -16,9 +30,8 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch files whenever the config or path changes
   useEffect(() => {
-    if (!config) return; // Don't fetch if not connected
+    if (!config) return;
 
     async function fetchFiles() {
       setIsLoading(true);
@@ -28,11 +41,8 @@ export default function Page() {
         const safeData: FileItem[] = data.map((item) => ({
           id: item.id,
           name: item.name,
-          // Cast the type to satisfy TypeScript, defaulting to "unknown"
           type: item.type as FileItem["type"],
-          // Force numbers (like byte sizes) into strings
           size: item.size !== null && item.size !== undefined ? String(item.size) : "--",
-          // Force dates or nulls into strings
           lastModified: item.lastModified ? String(item.lastModified) : "--",
         }));
         setFiles(safeData);
@@ -61,34 +71,26 @@ export default function Page() {
     }
   }
 
-  // Handler for when the user clicks "Connect" in the sidebar
   const handleConnect = (newConfig: ConnectionConfig) => {
     setConfig(newConfig);
-    setCurrentPath("/"); // Reset to root path on new connection
+    setCurrentPath("/");
   };
 
-  // Handler for clicking a folder in the StorageBrowser
   const handleNavigate = (folderName: string) => {
-    // Ensure clean path building
     console.log(folderName)
-    // const cleanPath = currentPath.endsWith('/') ? currentPath : `${currentPath}/`;
     setCurrentPath(`${folderName}/`);
   };
-  // Handler for clicking the download button
   const handleDownload = async (fileId: string, fileName: string) => {
     if (!config) return;
     
     try {
-      // 1. Fetch the pre-signed URL from OpenDAL
       const downloadUrl = await getDownloadUrl(config, fileId);
 
-      // 2. Create an invisible anchor tag to trigger the browser's native download
       const link = document.createElement("a");
       link.href = downloadUrl;
       
-      // The download attribute suggests a filename to the browser
       link.download = fileName; 
-      link.target = "_blank"; // Safe fallback 
+      link.target = "_blank";
       
       // Append, click, and clean up
       document.body.appendChild(link);
@@ -109,7 +111,6 @@ export default function Page() {
         "--header-height": "calc(var(--spacing) * 12)",
       } as React.CSSProperties}
     >
-      {/* Pass the handleConnect function to the Sidebar */}
       <AppSidebar variant="inset" onConnect={handleConnect} />
       
       <SidebarInset>
@@ -119,7 +120,6 @@ export default function Page() {
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
                 
-                {/* Basic UI Feedback */}
                 {!config && (
                   <div className="p-8 text-center text-muted-foreground border rounded-xl border-dashed">
                     Please configure your connection settings in the sidebar to view files.
@@ -138,7 +138,6 @@ export default function Page() {
                   </div>
                 )}
 
-                {/* Render the browser when we have a config and aren't loading */}
                 {config && !isLoading && !error && (
                   <div className=" gap-y-3 grid">
                   <SearchBrowser onSearch={handleSearch} />

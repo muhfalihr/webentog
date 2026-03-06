@@ -1,3 +1,17 @@
+// Copyright (C) 2026 Oktapiancaw
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 "use client"
 
 import * as React from "react"
@@ -29,22 +43,18 @@ export interface ConnectionConfig {
   region: string;
 }
 
-// Add an onConnect prop so the parent component can receive the data
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onConnect?: (config: ConnectionConfig) => void;
 }
 export function AppSidebar({ onConnect, ...props }: AppSidebarProps) {
-    // 1. State for form fields (with your default values)
   const [endpoint, setEndpoint] = useState("https://s3.us-east-1.amazonaws.com")
   const [accessKey, setAccessKey] = useState("AKIA27XQ5Z7Y4EXAMPLE")
   const [secretKey, setSecretKey] = useState("")
   const [bucket, setBucket] = useState("prod-assets-v1")
   const [region, setRegion] = useState("us-east-1")
 
-  // 2. State for toggling the secret key visibility
   const [showSecret, setShowSecret] = useState(false)
 
-  // 3. Handle the connect action
   const handleConnect = () => {
     const config = { endpoint, accessKey, secretKey, bucket, region };
     console.log("Submitting connection config:", config);

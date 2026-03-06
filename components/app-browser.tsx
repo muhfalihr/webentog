@@ -1,6 +1,19 @@
+// Copyright (C) 2026 Oktapiancaw
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 "use client"
 
-import * as React from "react"
 import { 
   Folder, 
   Image as ImageIcon, 
@@ -13,7 +26,6 @@ import {
 import { Button } from "@/components/ui/button"
 
 
-// 2. Mock data based on your image
 const mockFiles: FileItem[] = [
   { id: "1", name: "campaign_assets", type: "folder", size: "--", lastModified: "2 hours ago" },
   { id: "2", name: "profiles_v2", type: "folder", size: "--", lastModified: "5 hours ago" },
@@ -22,7 +34,6 @@ const mockFiles: FileItem[] = [
   { id: "5", name: "config.json", type: "json", size: "12 KB", lastModified: "3 days ago" },
   { id: "6", name: "intro_animation_v2.mp4", type: "video", size: "42.8 MB", lastModified: "1 week ago" },
 ];
-// Export these types so your parent component can use them
 export type FileType = "folder" | "image" | "pdf" | "json" | "video" | "unknown";
 
 export interface FileItem {
@@ -83,7 +94,6 @@ export function StorageBrowser({ files = mockFiles, onNavigate, onDownload }: St
                   {file.lastModified}
                 </td>
                 <td className="p-4 px-6 align-middle text-right">
-                  {/* Conditionally render the download button only if it's NOT a folder */}
                   {file.type === "folder" && (
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => {
                         if (file.type === 'folder' && onNavigate) {
