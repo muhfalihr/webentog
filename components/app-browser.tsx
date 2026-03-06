@@ -37,6 +37,7 @@ interface StorageBrowserProps {
   files: FileItem[];
   onNavigate?: (folderName: string) => void;
   onDownload?: (fileId: string, fileName: string) => void;
+  onSearch?: (searchtext: string) => void;
 }
 
 const getFileIcon = (type: FileType) => {
@@ -76,7 +77,7 @@ export function StorageBrowser({ files = mockFiles, onNavigate, onDownload }: St
                   </div>
                 </td>
                 <td className="p-4 px-6 align-middle text-muted-foreground">
-                  {file.size} KB
+                  {file.size}
                 </td>
                 <td className="p-4 px-6 align-middle text-muted-foreground">
                   {file.lastModified}

@@ -6,10 +6,12 @@ import { AppSidebar, ConnectionConfig } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { getDownloadUrl, listStorageFiles } from "./action"
+import { SearchBrowser } from "@/components/search-browser"
 
 export default function Page() {
   const [config, setConfig] = useState<ConnectionConfig | null>(null);
   const [currentPath, setCurrentPath] = useState<string>("/");
+  const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +29,14 @@ export default function Page() {
           id: item.id,
           name: item.name,
           // Cast the type to satisfy TypeScript, defaulting to "unknown"
-          type: (item.type === "folder" ? "folder" : "unknown") as FileItem["type"],
+          type: item.type as FileItem["type"],
           // Force numbers (like byte sizes) into strings
           size: item.size !== null && item.size !== undefined ? String(item.size) : "--",
           // Force dates or nulls into strings
           lastModified: item.lastModified ? String(item.lastModified) : "--",
         }));
         setFiles(safeData);
+        setFilteredFiles(safeData);
       } catch (err) {
         setError(`Failed to load files. Check your connection settings. ${err}`);
         setFiles([]);
@@ -44,6 +47,19 @@ export default function Page() {
 
     fetchFiles();
   }, [config, currentPath]);
+
+
+  const handleSearch = (searchtext: string) => {
+    if (searchtext.length > 0){
+      const filteredFiles = files.filter((file) => 
+        file.name.toLowerCase().includes(searchtext.toLowerCase())
+      );
+      setFilteredFiles(filteredFiles)
+      console.log("a")
+    } else {
+      setFilteredFiles(files)
+    }
+  }
 
   // Handler for when the user clicks "Connect" in the sidebar
   const handleConnect = (newConfig: ConnectionConfig) => {
@@ -124,11 +140,14 @@ export default function Page() {
 
                 {/* Render the browser when we have a config and aren't loading */}
                 {config && !isLoading && !error && (
+                  <div className=" gap-y-3 grid">
+                  <SearchBrowser onSearch={handleSearch} />
                   <StorageBrowser 
-                    files={files} 
+                    files={filteredFiles} 
                     onNavigate={handleNavigate}
                     onDownload={handleDownload}
                   />
+                  </div>
                 )}
 
               </div>
