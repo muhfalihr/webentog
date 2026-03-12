@@ -30,21 +30,19 @@ export function SearchBrowser({ onSearch }: SearchBrowserProps) {
       <Input
         id="searchText"
         value={searchText}
-        className=" w-full"
+        className="w-full rounded-none font-mono text-sm"
         placeholder="Search your file.."
         onChange={(e) => setSearchText(e.target.value)}
       />
 
       <Button
         variant={'outline'}
-        className="justify-center gap-2 "
+        className="justify-center gap-2 rounded-none font-semibold uppercase tracking-wider text-xs"
         onClick={() => onSearch?.(searchText)}
       >
         Search
         <SearchIcon className="size-4" />
       </Button>
     </div>
-    //     </div>
-    // </div>
   );
 }

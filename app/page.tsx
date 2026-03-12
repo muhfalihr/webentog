@@ -14,21 +14,46 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { StorageBrowser, FileItem } from '@/components/app-browser';
-import { AppSidebar, ConnectionConfig } from '@/components/app-sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { ConnectionConfig } from '@/app/action';
 import { SiteHeader } from '@/components/site-header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { getDownloadUrl, listStorageFiles } from './action';
 import { SearchBrowser } from '@/components/search-browser';
+import { toast } from 'sonner';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer';
+import { Loader2 } from 'lucide-react';
 
-export default function Page() {
+function PageContent() {
   const [config, setConfig] = useState<ConnectionConfig | null>(null);
-  const [currentPath, setCurrentPath] = useState<string>('/');
-  const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const currentPath = searchParams.get('path') || '/';
+
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Pagination state
+  const [pageSize, setPageSize] = useState<number | 'all'>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Viewing state
+  const [viewingFile, setViewingFile] = useState<FileItem | null>(null);
+  const [viewingUrl, setViewingUrl] = useState<string | null>(null);
+  const [isViewingLoading, setIsViewingLoading] = useState(false);
+  const [fileContent, setFileContent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!config) return;
@@ -49,12 +74,13 @@ export default function Page() {
           lastModified: item.lastModified ? String(item.lastModified) : '--',
         }));
         setFiles(safeData);
-        setFilteredFiles(safeData);
+        setCurrentPage(1); // Reset to first page on path change
       } catch (err) {
         setError(
           `Failed to load files. Check your connection settings. ${err}`
         );
         setFiles([]);
+        toast.error('Failed to load files');
       } finally {
         setIsLoading(false);
       }
@@ -63,27 +89,42 @@ export default function Page() {
     fetchFiles();
   }, [config, currentPath]);
 
+  const filteredFiles = useMemo(() => {
+    if (!searchQuery) return files;
+    return files.filter((file) =>
+      file.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [files, searchQuery]);
+
+  const paginatedFiles = useMemo(() => {
+    if (pageSize === 'all') return filteredFiles;
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredFiles.slice(startIndex, startIndex + pageSize);
+  }, [filteredFiles, currentPage, pageSize]);
+
   const handleSearch = (searchtext: string) => {
-    if (searchtext.length > 0) {
-      const filteredFiles = files.filter((file) =>
-        file.name.toLowerCase().includes(searchtext.toLowerCase())
-      );
-      setFilteredFiles(filteredFiles);
-      console.log('a');
-    } else {
-      setFilteredFiles(files);
-    }
+    setSearchQuery(searchtext);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   const handleConnect = (newConfig: ConnectionConfig) => {
     setConfig(newConfig);
-    setCurrentPath('/');
+    const params = new URLSearchParams(searchParams);
+    params.delete('path');
+    router.push(`${pathname}?${params.toString()}`);
   };
 
-  const handleNavigate = (folderName: string) => {
-    console.log(folderName);
-    setCurrentPath(`${folderName}/`);
+  const handleNavigate = (path: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (path === '/') {
+      params.delete('path');
+    } else {
+      const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+      params.set('path', cleanPath);
+    }
+    router.push(`${pathname}?${params.toString()}`);
   };
+
   const handleDownload = async (fileId: string, fileName: string) => {
     if (!config) return;
 
@@ -100,10 +141,33 @@ export default function Page() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      toast.success(`Downloading ${fileName}...`);
     } catch (error) {
       console.error('Failed to download file:', error);
-      // Optional: You could add a toast notification here to alert the user
-      alert('Failed to download file. Please check your connection.');
+      toast.error('Failed to download file. Please check your connection.');
+    }
+  };
+
+  const handleView = async (file: FileItem) => {
+    if (!config) return;
+    setViewingFile(file);
+    setIsViewingLoading(true);
+    setViewingUrl(null);
+    setFileContent(null);
+    try {
+      const url = await getDownloadUrl(config, file.id);
+      setViewingUrl(url);
+
+      if (file.type === 'json' || file.type === 'unknown') {
+        const response = await fetch(url);
+        const text = await response.text();
+        setFileContent(text);
+      }
+    } catch (error) {
+      console.error('Failed to load preview:', error);
+      toast.error('Failed to load preview');
+    } finally {
+      setIsViewingLoading(false);
     }
   };
 
@@ -116,40 +180,44 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" onConnect={handleConnect} />
+      <AppSidebar variant="inset" onConnect={handleConnect} isLoading={isLoading} />
 
       <SidebarInset>
-        <SiteHeader currentPath={currentPath} onNavigate={handleNavigate} />
+        <SiteHeader currentPath={currentPath} onNavigate={handleNavigate} bucket={config?.bucket} />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
                 {!config && (
-                  <div className="p-8 text-center text-muted-foreground border rounded-xl border-dashed">
+                  <div className="p-8 text-center text-muted-foreground border rounded-none">
                     Please configure your connection settings in the sidebar to
                     view files.
                   </div>
                 )}
 
-                {config && isLoading && (
-                  <div className="p-8 text-center text-muted-foreground">
-                    Loading directory contents...
-                  </div>
-                )}
-
                 {config && error && (
-                  <div className="p-4 mb-4 text-red-500 bg-red-50 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-900">
+                  <div className="p-4 mb-4 text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-none">
                     {error}
                   </div>
                 )}
 
-                {config && !isLoading && !error && (
+                {config && !error && (
                   <div className=" gap-y-3 grid">
                     <SearchBrowser onSearch={handleSearch} />
                     <StorageBrowser
-                      files={filteredFiles}
+                      files={paginatedFiles}
+                      isLoading={isLoading}
                       onNavigate={handleNavigate}
                       onDownload={handleDownload}
+                      onView={handleView}
+                      pageSize={pageSize}
+                      currentPage={currentPage}
+                      totalItems={filteredFiles.length}
+                      onPageChange={setCurrentPage}
+                      onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                      }}
                     />
                   </div>
                 )}
@@ -158,6 +226,69 @@ export default function Page() {
           </div>
         </div>
       </SidebarInset>
+
+      <Drawer open={!!viewingFile} onOpenChange={(open) => !open && setViewingFile(null)} direction="right">
+        <DrawerContent className="h-full rounded-none">
+          <DrawerHeader className="border-b">
+            <DrawerTitle className="truncate">{viewingFile?.name}</DrawerTitle>
+            <DrawerDescription>
+              {viewingFile?.size} • {viewingFile?.lastModified}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="flex-1 overflow-auto p-4">
+            {isViewingLoading ? (
+              <div className="flex h-full items-center justify-center">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : viewingUrl ? (
+              <div className="flex h-full flex-col gap-4">
+                {viewingFile?.type === 'image' && (
+                  <div className="flex h-full items-center justify-center">
+                    <img
+                      src={viewingUrl}
+                      alt={viewingFile.name}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                )}
+                {viewingFile?.type === 'video' && (
+                  <div className="flex h-full items-center justify-center">
+                    <video
+                      src={viewingUrl}
+                      controls
+                      className="max-h-full max-w-full"
+                    />
+                  </div>
+                )}
+                {viewingFile?.type === 'pdf' && (
+                  <iframe
+                    src={viewingUrl}
+                    className="h-full w-full border-0"
+                    title={viewingFile.name}
+                  />
+                )}
+                {(viewingFile?.type === 'json' || viewingFile?.type === 'unknown') && (
+                  <pre className="rounded-none bg-muted p-4 font-mono text-sm overflow-auto max-h-full">
+                    {fileContent}
+                  </pre>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                Failed to load preview
+              </div>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </SidebarProvider>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PageContent />
+    </Suspense>
   );
 }

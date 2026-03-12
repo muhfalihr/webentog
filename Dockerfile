@@ -42,6 +42,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Default environment variables for authentication and connection persistence
+ENV ADMIN_USERNAME=admin
+ENV ADMIN_PASSWORD=admin
+ENV PERSISTENT_CONNECTION=true
+
 # Create a non-root user for security best practices
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
