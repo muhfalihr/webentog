@@ -16,13 +16,52 @@
 
 import { FileType } from '@/components/app-browser';
 import { Operator } from 'opendal';
+import db from '@/lib/db';
 
-interface ConnectionConfig {
+export interface ConnectionConfig {
+  id?: number;
+  name?: string;
   endpoint: string;
   accessKey: string;
   secretKey: string;
   bucket: string;
   region: string;
+}
+
+export async function saveConnection(config: ConnectionConfig) {
+  try {
+    const { name, endpoint, accessKey, secretKey, bucket, region } = config;
+    const stmt = db.prepare(`
+      INSERT INTO connections (name, endpoint, accessKey, secretKey, bucket, region)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(name || 'Unnamed Connection', endpoint, accessKey, secretKey, bucket, region);
+    return { id: result.lastInsertRowid };
+  } catch (error) {
+    console.error('Save Connection Error:', error);
+    throw new Error('Failed to save connection.');
+  }
+}
+
+export async function getConnections(): Promise<ConnectionConfig[]> {
+  try {
+    const stmt = db.prepare('SELECT * FROM connections ORDER BY created_at DESC');
+    return stmt.all() as ConnectionConfig[];
+  } catch (error) {
+    console.error('Get Connections Error:', error);
+    return [];
+  }
+}
+
+export async function deleteConnection(id: number) {
+  try {
+    const stmt = db.prepare('DELETE FROM connections WHERE id = ?');
+    stmt.run(id);
+    return { success: true };
+  } catch (error) {
+    console.error('Delete Connection Error:', error);
+    throw new Error('Failed to delete connection.');
+  }
 }
 
 export async function listStorageFiles(config: ConnectionConfig, path: string) {
@@ -33,6 +72,7 @@ export async function listStorageFiles(config: ConnectionConfig, path: string) {
       secret_access_key: config.secretKey,
       bucket: config.bucket,
       region: config.region,
+      allow_http: 'true',
     });
 
     const entries = await op.list(path);
@@ -89,12 +129,10 @@ export async function listStorageFiles(config: ConnectionConfig, path: string) {
       const sizeFile = metadata.contentLength
         ? Math.round(Number(metadata.contentLength) / 1024) + 'KB'
         : '--';
+      const name = pathString.split('/').filter(Boolean).pop() || 'unknown';
       return {
         id: pathString,
-        name:
-          pathString ||
-          pathString.split('/').filter(Boolean).pop() ||
-          'unknown',
+        name: name,
         type: fileType,
         size: sizeFile,
         lastModified: metadata.lastModified,

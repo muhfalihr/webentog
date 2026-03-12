@@ -13,24 +13,34 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
+import { Toaster } from 'sonner';
 import './globals.css';
 import { Suspense } from 'react';
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#ffffff',
 };
 
-const inter = Inter({
-  variable: '--font-inter',
+const geistSans = Geist({
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+});
+
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
   subsets: ['latin'],
 });
 
 export const metadata: Metadata = {
-  title: 'WebEntog | Object Storage Management',
+  title: 'WebEntog',
   description: 'Object Storage Management on browser',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
@@ -40,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} bg-white tracking-tight antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-white tracking-tight antialiased`}>
         <ThemeProvider
           enableSystem={true}
           attribute="class"
@@ -48,6 +58,13 @@ export default function RootLayout({
           defaultTheme="light"
         >
           <Suspense>{children}</Suspense>
+          <Toaster 
+            position="top-right" 
+            richColors 
+            toastOptions={{
+              className: 'rounded-none font-sans border-slate-200 dark:border-slate-800',
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

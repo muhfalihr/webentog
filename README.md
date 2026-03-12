@@ -1,14 +1,13 @@
-
 # WebEntog 🦆
 
 **Object Storage Management on the browser.**
 
 WebEntog is a lightweight, web-based alternative to desktop object storage clients (like Cyberduck or FileZilla). It is designed for users who need quick, secure access to their cloud storage but are unable or unwilling to download and install dedicated desktop software.
 
-
-
 ## ✨ Features
 
+* **Authentication:** Secure login system to protect your storage management dashboard.
+* **Flexible Persistence:** Toggle between "Persistent Mode" (save connections to a database) or "Non-Persistent Mode" (transient, session-based connections).
 * **No Installation Required:** Fully functional in any modern web browser.
 * **Dynamic Connections:** Connect to any S3-compatible object storage simply by entering your endpoint, credentials, and bucket name in the UI.
 * **Universal Storage Compatibility:** Powered by Apache OpenDAL, enabling potential future support for dozens of storage backends (GCS, Azure, WebDAV, etc.).
@@ -23,6 +22,16 @@ WebEntog is a lightweight, web-based alternative to desktop object storage clien
 * **Icons:** Lucide React
 * **Deployment:** Docker (Multi-stage build)
 
+## ⚙️ Configuration
+
+WebEntog uses environment variables for security and behavior control. Create a `.env` file in the root directory:
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `ADMIN_USERNAME` | `admin` | The username for the login page. |
+| `ADMIN_PASSWORD` | `admin` | The password for the login page. |
+| `PERSISTENT_CONNECTION` | `true` | Set to `false` to disable the login page and database persistence. |
+
 ## 🚀 Getting Started (Local Development)
 
 ### Prerequisites
@@ -33,7 +42,7 @@ WebEntog is a lightweight, web-based alternative to desktop object storage clien
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/webentog.git
+git clone https://github.com/oktapiancaw/webentog.git
 cd webentog
 ```
 
@@ -43,38 +52,45 @@ cd webentog
 npm install --legacy-peer-deps
 ```
 
+3. Setup Environment:
+```bash
+cp .env.example .env # If available, or create manually
+```
 
-3. Start the development server:
+4. Start the development server:
 ```bash
 npm run dev
 ```
 
-
-4. Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 > **Note on OpenDAL Native Bindings:** If you encounter a `Cannot find native binding` error during installation, clear your `node_modules` and run `npm rebuild` to ensure the Rust binaries for your operating system are downloaded correctly.
 
 ## 🐳 Docker Deployment
 
-WebEntog includes a highly optimized, multi-stage Dockerfile that leverages Next.js standalone output and Debian-slim to ensure native OpenDAL bindings work flawlessly.
+WebEntog includes a highly optimized, multi-stage Dockerfile that leverages Next.js standalone output and Debian-slim.
 
 1. Build the image:
 ```bash
 docker build -t webentog .
 ```
 
-
 2. Run the container:
 ```bash
-docker run -p 3000:3000 webentog
+docker run -p 3000:3000 \
+  -e ADMIN_USERNAME=myuser \
+  -e ADMIN_PASSWORD=mypassword \
+  -e PERSISTENT_CONNECTION=true \
+  webentog
 ```
-
 
 The application will be available at `http://localhost:3000`.
 
 ## 🔒 Security Note
 
-WebEntog does not persist your storage credentials. The connection state is held in the browser's active session and passed securely to the Next.js server per request. Refreshing the page will require you to re-enter your connection details.
+WebEntog provides a login layer to protect your storage configurations. 
+- In **Persistent Mode** (`PERSISTENT_CONNECTION=true`), your connection details (endpoints, keys, etc.) are saved to a local SQLite database (`connections.db`).
+- In **Non-Persistent Mode** (`PERSISTENT_CONNECTION=false`), the login page is disabled, and the application treats all traffic as authorized, suitable for single-user transient environments.
 
 ## 📄 License
 
